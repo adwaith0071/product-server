@@ -43,7 +43,7 @@ app.use(helmet());
 // CORS middleware - Allow multiple origins
 const allowedOrigins = [
   process.env.CLIENT_URL,
-  "http://localhost:3000",
+  "https://product-web-v34j.onrender.com",
   "http://localhost:5173",
 ].filter(Boolean); // Filter out undefined values if CLIENT_URL is not set
 
