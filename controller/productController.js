@@ -292,6 +292,7 @@ const getProduct = async (req, res) => {
 // @desc    Update product
 // @route   PUT /api/products/:id
 // @access  Private
+
 const updateProduct = async (req, res) => {
   try {
     const { title, description, subCategory, isActive } = req.body;
@@ -373,6 +374,17 @@ const updateProduct = async (req, res) => {
       }
     }
 
+    // Parse existing images that should be kept (sent from frontend)
+    let existingImages = [];
+    if (req.body.existingImages) {
+      try {
+        existingImages = JSON.parse(req.body.existingImages);
+      } catch (e) {
+        console.error("Error parsing existingImages:", e);
+        existingImages = [];
+      }
+    }
+
     // Prepare update data
     const updateData = {};
     if (title) updateData.title = title.trim();
@@ -404,9 +416,32 @@ const updateProduct = async (req, res) => {
         }
       }
       updateData.images = newImages;
-    } else if (newImages.length > 0) {
-      // Add new images to existing ones
-      updateData.images = [...product.images, ...newImages];
+    } else {
+      // Handle partial image updates
+
+      // First, identify images that were removed (existed in product but not in existingImages)
+      const removedImages = product.images.filter(
+        (productImage) =>
+          !existingImages.some(
+            (existingImage) =>
+              existingImage.public_id === productImage.public_id
+          )
+      );
+
+      // Delete removed images from Cloudinary
+      for (const removedImage of removedImages) {
+        try {
+          await deleteImage(removedImage.public_id);
+        } catch (deleteError) {
+          console.error(
+            "Error deleting removed image from Cloudinary:",
+            deleteError
+          );
+        }
+      }
+
+      // Combine existing images (that should be kept) with new images
+      updateData.images = [...existingImages, ...newImages];
     }
 
     // Update product
