@@ -10,15 +10,15 @@ const { protect, rateLimit } = require("../middleware/auth");
 
 const router = express.Router();
 
-// Apply rate limiting to auth routes.
-// We make it more lenient in development to avoid being blocked during testing.
-const isDevelopment = process.env.NODE_ENV === "development";
-const authRateLimit = rateLimit(
-  15 * 60 * 1000, // 15 minutes
-  isDevelopment ? 100 : 20 // 100 requests in dev, 20 in production
-);
-
-router.use(authRateLimit);
+// Apply rate limiting to auth routes, but ONLY in production.
+// This prevents developers from being blocked during testing.
+if (process.env.NODE_ENV === "production") {
+  const authRateLimit = rateLimit(
+    15 * 60 * 1000, // 15 minutes
+    20 // 20 requests per 15 mins in production
+  );
+  router.use(authRateLimit);
+}
 
 // @route   POST /api/auth/signup
 // @desc    Register user

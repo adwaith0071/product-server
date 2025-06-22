@@ -8,6 +8,7 @@ const {
   updateSubCategory,
   deleteSubCategory,
 } = require("../controller/subCategoryController");
+const { getProductsBySubCategory } = require("../controller/productController");
 const { protect } = require("../middleware/auth");
 
 const router = express.Router();
@@ -36,5 +37,10 @@ router.put("/:id", protect, updateSubCategory);
 // @desc    Delete subcategory
 // @access  Private
 router.delete("/:id", protect, deleteSubCategory);
+
+// @route   GET /api/subcategories/:subCategoryId/products
+// @desc    Get products by subcategory
+// @access  Public
+router.get("/:subCategoryId/products", getProductsBySubCategory);
 
 module.exports = router;

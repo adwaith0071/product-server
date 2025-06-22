@@ -185,7 +185,10 @@ const getProducts = async (req, res) => {
 
     // Only add text search if search parameter is provided and not empty
     if (search && search.trim() !== "") {
-      query.$text = { $search: search.trim() };
+      query.$or = [
+        { title: { $regex: search.trim(), $options: "i" } },
+        { description: { $regex: search.trim(), $options: "i" } },
+      ];
     }
 
     if (category) {
@@ -521,7 +524,10 @@ const getProductsBySubCategory = async (req, res) => {
     const query = { subCategory: subCategoryId, isActive: true };
 
     if (search) {
-      query.$text = { $search: search };
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
     }
 
     // Calculate pagination
@@ -590,18 +596,24 @@ const searchProducts = async (req, res) => {
 
     // Search products
     const products = await Product.find({
-      $text: { $search: q.trim() },
+      $or: [
+        { title: { $regex: q.trim(), $options: "i" } },
+        { description: { $regex: q.trim(), $options: "i" } },
+      ],
       isActive: true,
     })
       .populate("category", "name")
       .populate("subCategory", "name")
-      .sort({ score: { $meta: "textScore" } })
+      .sort(sortBy === "createdAt" ? { createdAt: -1 } : { title: 1 })
       .skip(skip)
       .limit(parseInt(limit));
 
     // Get total count
     const totalProducts = await Product.countDocuments({
-      $text: { $search: q.trim() },
+      $or: [
+        { title: { $regex: q.trim(), $options: "i" } },
+        { description: { $regex: q.trim(), $options: "i" } },
+      ],
       isActive: true,
     });
 
@@ -631,6 +643,86 @@ const searchProducts = async (req, res) => {
   }
 };
 
+// @desc    Get products by category
+// @route   GET /api/categories/:categoryId/products
+// @access  Public
+const getProductsByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      sortBy = "createdAt",
+      sortOrder = "desc",
+    } = req.query;
+
+    // Check if category exists
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found",
+      });
+    }
+
+    // Build query
+    const query = { category: categoryId, isActive: true };
+
+    if (search) {
+      query.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { description: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    // Calculate pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Build sort object
+    const sort = {};
+    sort[sortBy] = sortOrder === "desc" ? -1 : 1;
+
+    // Get products
+    const products = await Product.find(query)
+      .populate("category", "name")
+      .populate("subCategory", "name")
+      .sort(sort)
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    // Get total count
+    const totalProducts = await Product.countDocuments(query);
+    const totalPages = Math.ceil(totalProducts / parseInt(limit));
+
+    res.status(200).json({
+      success: true,
+      data: {
+        category: {
+          id: category._id,
+          name: category.name,
+          description: category.description,
+        },
+        products,
+        pagination: {
+          currentPage: parseInt(page),
+          totalPages,
+          totalProducts,
+          hasNextPage: parseInt(page) < totalPages,
+          hasPrevPage: parseInt(page) > 1,
+          limit: parseInt(limit),
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Get products by category error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while fetching products",
+    });
+  }
+};
+
 module.exports = {
   createProduct,
   getProducts,
@@ -639,4 +731,5 @@ module.exports = {
   deleteProduct,
   getProductsBySubCategory,
   searchProducts,
+  getProductsByCategory,
 };
