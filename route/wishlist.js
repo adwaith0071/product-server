@@ -1,4 +1,3 @@
-// routes/wishlist.js
 const express = require("express");
 const {
   getWishlist,

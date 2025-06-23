@@ -1,4 +1,3 @@
-// models/SubCategory.js
 const mongoose = require("mongoose");
 
 const subCategorySchema = new mongoose.Schema(

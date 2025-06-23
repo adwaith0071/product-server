@@ -1,4 +1,3 @@
-// controllers/wishlistController.js
 const User = require("../model/userModel");
 const Product = require("../model/productModel");
 

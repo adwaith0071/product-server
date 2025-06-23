@@ -1,4 +1,3 @@
-// routes/index.js
 const express = require("express");
 
 // Import route modules

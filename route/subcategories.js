@@ -1,4 +1,3 @@
-// routes/subcategories.js
 const express = require("express");
 const {
   createSubCategory,
